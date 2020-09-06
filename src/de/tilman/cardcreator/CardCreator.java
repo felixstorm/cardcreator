@@ -73,7 +73,7 @@ public class CardCreator {
 	private ClientCredentialsRequest clientCredentialsRequest;
 	private Image spotifyLogo;
 
-	public CardCreator() {
+	public CardCreator(String cardsFile) {
 		
 		List<Card> cards;
 		
@@ -83,7 +83,16 @@ public class CardCreator {
 			properties = new Properties();
 			properties.load(reader);
 			
-			List<String> links = Files.readAllLines(new File(properties.getProperty("cardsFile")).toPath(), Charset.forName("UTF-8"));
+			if (cardsFile == null) {
+				cardsFile = properties.getProperty("cardsFile", "cards.txt");
+			}
+			
+			String destinationFile = properties.getProperty("destinationFile");
+			if (destinationFile == null || destinationFile.isBlank()) {
+				destinationFile = cardsFile.replaceAll("\\.[^\\.]*$", ".pdf");
+			}
+			
+			List<String> links = Files.readAllLines(new File(cardsFile).toPath(), Charset.forName("UTF-8"));
 			
 			for (int i = links.size()-1; i >= 0; i--)
 				if (links.get(i).startsWith("//") || links.get(i).length() == 0)
@@ -91,7 +100,7 @@ public class CardCreator {
 				else
 					if (links.get(i).startsWith("spotify:") && links.get(i).indexOf(' ') > 0)
 						links.set(i, links.get(i).substring(0, links.get(i).indexOf(' ')));
-			log.info("Read " + links.size() + " links from " + properties.getProperty("cardsFile"));
+			log.info("Read " + links.size() + " links from " + cardsFile);
 			
 			if (properties.getProperty("spotifyClientId") != null && properties.getProperty("spotifyClientId").length() > 0) {
 				spotifyApi = new SpotifyApi.Builder().setClientId(properties.getProperty("spotifyClientId")).setClientSecret(properties.getProperty("spotifyClientSecret")).build();
@@ -127,7 +136,7 @@ public class CardCreator {
 			spotifyLogo = new Image(ImageDataFactory.create("resources/Spotify_Icon_RGB_Green.png"));
 			spotifyLogo.setHeight(6 * mmUnit);
 			
-			createFoldingPdf(properties.getProperty("destinationFile"), sortCards(cards));
+			createFoldingPdf(destinationFile, sortCards(cards));
 			
 		} catch (IOException | SpotifyWebApiException e) {
 			log.error(e.getMessage());
@@ -250,6 +259,9 @@ public class CardCreator {
 	}
 
 	protected void createFoldingPdf(String dest, List<List<Card>> lines) throws Exception {
+		
+		log.info("Creating PDF " + dest);
+
 		PdfDocument pdfDoc = new PdfDocument(new PdfWriter(dest));
 		pdfDoc.setDefaultPageSize(PageSize.A4.rotate());
 		Document doc = new Document(pdfDoc);
@@ -353,7 +365,7 @@ public class CardCreator {
 	
 
 	public static void main(String[] args) throws Exception {
-		new CardCreator();
+		new CardCreator(args != null && args.length > 0 ? args[0] : null);
 	}
 }
 
