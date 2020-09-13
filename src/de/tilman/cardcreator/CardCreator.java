@@ -21,6 +21,7 @@ import com.itextpdf.barcodes.qrcode.EncodeHintType;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfNumber;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -48,6 +49,7 @@ public class CardCreator {
 	public float pageHeight = 210;
 	public int cardsPerPage = 6;
 	public float cardWidth = 40;
+	public boolean folding = true;
 	public float borderWidth = 1;
 	public float qrSize = 22;
 	public float topMargin = 11;
@@ -115,6 +117,7 @@ public class CardCreator {
 			pageWidth = Integer.parseInt(properties.getProperty("pageWidth"));
 			pageHeight = Integer.parseInt(properties.getProperty("pageHeight"));
 			cardsPerPage = Integer.parseInt(properties.getProperty("cardsPerPage"));
+			folding = Boolean.parseBoolean(properties.getProperty("folding"));
 			cardWidth = Integer.parseInt(properties.getProperty("cardWidth"));
 			borderWidth = Integer.parseInt(properties.getProperty("borderWidth"));
 			qrSize = Integer.parseInt(properties.getProperty("qrSize"));
@@ -135,7 +138,7 @@ public class CardCreator {
 			spotifyLogo = new Image(ImageDataFactory.create("resources/Spotify_Icon_RGB_Green.png"));
 			spotifyLogo.setHeight(6 * mmUnit);
 
-			createFoldingPdf(destinationFile, sortCards(cards));
+			createPdf(destinationFile, sortCards(cards));
 
 		} catch (IOException | SpotifyWebApiException e) {
 			log.error(e.getMessage());
@@ -250,12 +253,12 @@ public class CardCreator {
 		return lines;
 	}
 
-	protected void createFoldingPdf(String dest, List<List<Card>> lines) throws Exception {
+	protected void createPdf(String dest, List<List<Card>> lines) throws Exception {
 
 		log.info("Creating PDF " + dest);
 
 		PdfDocument pdfDoc = new PdfDocument(new PdfWriter(dest));
-		pdfDoc.setDefaultPageSize(PageSize.A4.rotate());
+		pdfDoc.setDefaultPageSize(new PageSize(new Rectangle(pageWidth * mmUnit, pageHeight * mmUnit)));
 		Document doc = new Document(pdfDoc);
 
 		float docMargin = (pageWidth - (cardWidth * cardsPerPage)) / 2 * mmUnit;
@@ -342,9 +345,11 @@ public class CardCreator {
 				table2.addCell(cell2);
 			}
 
-			table.setMinHeight(pageHeight / 2 * mmUnit);
-			table.setMaxHeight(pageHeight / 2 * mmUnit);
-			doc.add(table);
+			if (folding) {
+				table.setMinHeight(pageHeight/2 * mmUnit);
+				table.setMaxHeight(pageHeight/2 * mmUnit);
+				doc.add(table);
+			}
 
 			table2.setMinHeight(pageHeight / 2 * mmUnit);
 			table2.setMaxHeight(pageHeight / 2 * mmUnit);
