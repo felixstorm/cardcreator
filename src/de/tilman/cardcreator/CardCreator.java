@@ -165,7 +165,6 @@ public class CardCreator {
 				Album album = spotifyApi.getAlbum(spotifyId).build().execute();
 				card.title = album.getName();
 				card.artist = album.getArtists()[0].getName();
-
 				URL url = new URL(album.getImages()[0].getUrl());
 				card.cover = new Image(ImageDataFactory.create(url));
 			} else if (link.startsWith("spotify:track:")) {
@@ -224,6 +223,10 @@ public class CardCreator {
 				}
 
 			}
+
+			// remove HTML tags
+			card.title = card.title.replaceAll("<.*?>", "");
+			card.artist = card.artist.replaceAll("<.*?>", "");
 
 			card.qrcode = new BarcodeQRCode(link);
 			card.qrcode.setHints(hints);
